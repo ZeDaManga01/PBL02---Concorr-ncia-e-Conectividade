@@ -8,11 +8,21 @@ A aplicação foi desenvolvida utilizando o FastAPI para criação de APIs REST.
 Os principais requisitos atendidos incluem a descentralização dos servidores e o bloqueio de trechos reservados pelo primeiro cliente que iniciar a compra. Contudo, a aplicação ainda apresenta limitações no que se refere à confiabilidade e consistência do sistema, aspectos que discutiremos na seção de resultados.
 
 ## Metodologia Utilizada
-A comunicação entre as APIs segue a arquitetura REST, permitindo que consultas de disponibilidade e requisições de reserva sejam processadas de maneira descentralizada e isolada. Cada trecho de voo é representado por uma entrada em um arquivo JSON, e que é atualizado conforme as reservas são efetuadas.
 
-O processo de reserva de passagens utiliza o relógio lógico para organizar as requisições e evitar conflitos. Cada servidor mantém uma ordem de preferência com base nas requisições recebidas, e, quando uma requisição de reserva é iniciada, a passagem é temporariamente bloqueada. Dessa forma, o sistema oferece concorrência controlada para os trechos de voos disponíveis, ainda que atualmente essa funcionalidade só seja garantida entre servidores ativos.
+Na implementação do sistema de vendas de passagens, o FastAPI foi escolhido como framework principal para criar APIs REST baseadas em HTTP, dada sua simplicidade e alto desempenho. Esse framework é ideal para lidar com múltiplas requisições simultâneas, o que é essencial em um sistema de reservas com alta concorrência.
 
- - Implementação dos Testes: Os testes da aplicação foram realizados de forma simples, utilizando o Swagger UI para validação das principais funcionalidades e endpoints. Não foram implementados testes consistentes para garantir o comportamento esperado sob condições de alta concorrência ou falhas de servidores.
+Utilizando o HTTP como protocolo de comunicação, os clientes interagem com os servidores por meio de requisições REST, possibilitando que cada operação — como consulta, reserva ou cancelamento — seja facilmente identificada e gerenciada no servidor através dos métodos HTTP:
+
+- GET: para verificar a disponibilidade dos trechos de voos e acessar informações de uma rota específica.
+- POST: para realizar a reserva de um trecho de voo.
+- DELETE: para liberar um trecho reservado em caso de cancelamento.
+
+As APIs dos servidores se comunicam seguindo a arquitetura REST, permitindo que consultas e reservas sejam processadas de forma descentralizada, isolando operações entre servidores conveniados. Cada trecho de voo é registrado em um arquivo JSON, que é atualizado conforme novas reservas são efetuadas, mantendo assim a persistência de dados.
+
+Para ordenar as requisições e evitar conflitos, o sistema adota um relógio lógico. Com isso, cada servidor controla a ordem de preferência entre requisições recebidas, bloqueando temporariamente um trecho de voo quando uma reserva é iniciada. Embora essa funcionalidade ofereça uma concorrência controlada, ela é atualmente garantida apenas entre servidores ativos.
+
+Implementação dos Testes
+Os testes foram realizados de forma básica, utilizando o Swagger UI para validação das principais funcionalidades e endpoints. Não foram implementados testes consistentes para simular condições de alta concorrência ou falhas de servidores, limitando a verificação da aplicação quanto à confiabilidade e robustez sob esses cenários.
 
 ## Discussão e Resultados
 Durante a execução, o sistema atendeu parcialmente aos requisitos de descentralização e concorrência. O sistema implementa o compartilhamento de trechos entre companhias, garantindo que, em caso de queda de um servidor, as demais companhias não são diretamente impactadas, mantendo a operabilidade para os clientes conectados nos servidores ativos. Entretanto, isso gera uma limitação em relação ao acesso aos dados do servidor que caiu, o que compromete a experiência do usuário em casos de falhas.
