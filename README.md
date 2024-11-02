@@ -19,8 +19,15 @@ Utilizando o HTTP como protocolo de comunicação, os clientes interagem com os 
 
 As APIs dos servidores se comunicam seguindo a arquitetura REST, permitindo que consultas e reservas sejam processadas de forma descentralizada, isolando operações entre servidores conveniados. Cada trecho de voo é registrado em um arquivo JSON, que é atualizado conforme novas reservas são efetuadas, mantendo assim a persistência de dados.
 
-Para ordenar as requisições e evitar conflitos, o sistema adota um relógio lógico. Com isso, cada servidor controla a ordem de preferência entre requisições recebidas, bloqueando temporariamente um trecho de voo quando uma reserva é iniciada. Embora essa funcionalidade ofereça uma concorrência controlada, ela é atualmente garantida apenas entre servidores ativos.
-
+Para ordenar as requisições e evitar conflitos, o sistema adota um relógio lógico(Figura 1). Com isso, cada servidor controla a ordem de preferência entre requisições recebidas, bloqueando temporariamente um trecho de voo quando uma reserva é iniciada. Embora essa funcionalidade ofereça uma concorrência controlada, ela é atualmente garantida apenas entre servidores ativos.
+<div align="center">
+  <figure>
+    <img src="imagem_2024-11-01_221735861.png">
+    <br>
+    <figcaption> Figura 1: A Esquerda exemplo sem o algoritmo de Lamport e a Direita exemplo com algoritmo de Lamport. </figcaption>
+  </figure>
+  </div>
+  <br>
 Implementação dos Testes
 Os testes foram realizados de forma básica, utilizando o Swagger UI para validação das principais funcionalidades e endpoints. Não foram implementados testes consistentes para simular condições de alta concorrência ou falhas de servidores, limitando a verificação da aplicação quanto à confiabilidade e robustez sob esses cenários.
 
