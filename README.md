@@ -1,55 +1,42 @@
 # PASSCOM: Venda Compartilhada de Passagens
 
 ## Introdução
-Este projeto aborda o desenvolvimento de um sistema de venda de passagens aéreas interconectado entre diferentes companhias. Cada companhia possui um servidor próprio para consultas e reservas de trechos de voos, com a possibilidade de compartilhamento de rotas com companhias conveniadas. O desafio central foi implementar uma solução que permitisse ao cliente, a partir de qualquer servidor, reservar passagens em outras companhias, preservando a ordem e preferência dos trechos selecionados, além de garantir uma estrutura descentralizada, onde a queda de um servidor não comprometa o funcionamento dos demais.
 
-A aplicação foi desenvolvida utilizando o FastAPI para criação de APIs REST. Para gerenciar a concorrência e a ordenação de requisições entre diferentes servidores, foi empregado um relógio lógico, que facilita a sincronização e evita conflitos ao tratar as reservas de múltiplos clientes.
+Este projeto discute a criação de um sistema de comercialização de bilhetes aéreos que se conecte entre diversas empresas aéreas. Cada empresa tem um servidor dedicado para consultas e reservas de rotas aéreas, permitindo a partilha de rotas com empresas parceiras. O principal desafio foi estabelecer uma solução que possibilitasse ao cliente, de qualquer servidor, reservar bilhetes em outras empresas, mantendo a sequência e preferência dos trechos escolhidos. Além disso, era necessário assegurar uma estrutura descentralizada, onde a falha de um servidor não prejudicasse o funcionamento dos demais.
 
-Os principais requisitos atendidos incluem a descentralização dos servidores e o bloqueio de trechos reservados pelo primeiro cliente que iniciar a compra. Contudo, a aplicação ainda apresenta limitações no que se refere à confiabilidade e consistência do sistema, aspectos que discutiremos na seção de resultados.
+O aplicativo foi criado com o uso do FastAPI para a criação de APIs REST. Foi aplicada uma solução de bloqueio distribuído com Redis para administrar a concorrência e a ordem das solicitações entre diversos servidores. 
+
 
 ## Metodologia Utilizada
-
 Na implementação do sistema de vendas de passagens, o FastAPI foi escolhido como framework principal para criar APIs REST baseadas em HTTP, dada sua simplicidade e alto desempenho. Esse framework é ideal para lidar com múltiplas requisições simultâneas, o que é essencial em um sistema de reservas com alta concorrência.
 
 Utilizando o HTTP como protocolo de comunicação, os clientes interagem com os servidores por meio de requisições REST, possibilitando que cada operação — como consulta, reserva ou cancelamento — seja facilmente identificada e gerenciada no servidor através dos métodos HTTP:
 
-- GET: para verificar a disponibilidade dos trechos de voos e acessar informações de uma rota específica.
-- POST: para realizar a reserva de um trecho de voo.
-- DELETE: para liberar um trecho reservado em caso de cancelamento.
-
+ - GET: para verificar a disponibilidade dos trechos de voos e acessar informações de uma rota específica.
+ - POST: para realizar a reserva de um trecho de voo.
 As APIs dos servidores se comunicam seguindo a arquitetura REST, permitindo que consultas e reservas sejam processadas de forma descentralizada, isolando operações entre servidores conveniados. Cada trecho de voo é registrado em um arquivo JSON, que é atualizado conforme novas reservas são efetuadas, mantendo assim a persistência de dados.
 
-Para ordenar as requisições e evitar conflitos, o sistema adota um relógio lógico(Figura 1). Com isso, cada servidor controla a ordem de preferência entre requisições recebidas, bloqueando temporariamente um trecho de voo quando uma reserva é iniciada. Embora essa funcionalidade ofereça uma concorrência controlada, ela é atualmente garantida apenas entre servidores ativos.
-<div align="center">
-  <figure>
-    <img src="imagem_2024-11-01_221735861.png">
-    <br>
-    <figcaption> Figura 1: A Esquerda exemplo sem o algoritmo de Lamport e a Direita exemplo com algoritmo de Lamport. </figcaption>
-  </figure>
-  </div>
-  <br>
-Implementação dos Testes
-Os testes foram realizados de forma básica, utilizando o Swagger UI para validação das principais funcionalidades e endpoints. Não foram implementados testes consistentes para simular condições de alta concorrência ou falhas de servidores, limitando a verificação da aplicação quanto à confiabilidade e robustez sob esses cenários.
+### Bloqueio Distribuído com Redis
+Para garantir a concorrência entre os servidores e evitar a venda simultânea do mesmo trecho de voo, foi implementado um lock distribuído utilizando o Redis. Quando um servidor recebe uma requisição de compra de passagem, ele adquire um lock no Redis para o trecho específico. Isso impede que outros servidores ou processos concorrentes realizem a mesma venda enquanto o lock está ativo.
+
+A utilização do Redis proporciona uma abordagem eficiente de bloqueio, onde o lock pode ser compartilhado entre os servidores, garantindo que a venda de um trecho seja exclusiva durante o processo de reserva. Após a conclusão da transação, o lock é liberado, permitindo que outro cliente ou servidor realize a venda do trecho posteriormente.
+
+### Implementação dos Testes
+Os testes foram realizados de forma básica, utilizando o Swagger UI para validação das principais funcionalidades e endpoints. Não foram implementados testes consistentes para simular condições de alta concorrência ou falhas de servidores, limitando a verificação da aplicação quanto à confiabilidade e robustez sob esses cenários. Contudo, a solução de bloqueio distribuído com Redis foi validada em testes unitários, demonstrando a eficiência do mecanismo de concorrência entre servidores.
 
 ## Discussão e Resultados
 Durante a execução, o sistema atendeu parcialmente aos requisitos de descentralização e concorrência. O sistema implementa o compartilhamento de trechos entre companhias, garantindo que, em caso de queda de um servidor, as demais companhias não são diretamente impactadas, mantendo a operabilidade para os clientes conectados nos servidores ativos. Entretanto, isso gera uma limitação em relação ao acesso aos dados do servidor que caiu, o que compromete a experiência do usuário em casos de falhas.
 
- - Consistência e Confiabilidade: O sistema não atende totalmente os requisitos de confiabilidade. Atualmente, uma compra em andamento não é recuperada se o servidor onde o cliente iniciou a requisição cair e reiniciar. Não há um mecanismo que armazene o estado da transação de forma persistente para recuperação posterior. Isso representa uma limitação relevante em termos de experiência do cliente e continuidade das transações.
+### Consistência e Confiabilidade:
+O sistema possui uma solução mais robusta para garantir a concorrência e a integridade das transações, utilizando o Redis para implementar locks distribuídos. Com isso, conseguimos evitar a venda simultânea de trechos em servidores diferentes. Entretanto, o sistema ainda não atende totalmente os requisitos de confiabilidade. Atualmente, uma compra em andamento não é recuperada se o servidor onde o cliente iniciou a requisição cair e reiniciar. Não há um mecanismo que armazene o estado da transação de forma persistente para recuperação posterior. Isso representa uma limitação relevante em termos de experiência do cliente e continuidade das transações.
 
- - Concorrência e Preferência: A preferência dos trechos é garantida apenas entre os servidores online, não sendo assegurada entre servidores desconectados. Este aspecto representa uma fragilidade em cenários de queda de servidores, onde clientes que ainda estão realizando a compra podem encontrar dificuldades para completar a seleção dos trechos desejados.
+### Concorrência e Preferência:
+A preferência dos trechos é garantida entre os servidores conectados, e a concorrência é controlada pelo bloqueio distribuído, onde o Redis garante que apenas um cliente possa realizar a venda de um trecho. Esse controle impede que diferentes servidores vendam a mesma passagem para clientes distintos. Contudo, em cenários de queda de servidores, o sistema pode apresentar dificuldades para finalizar a venda, pois os locks podem não ser liberados corretamente se o servidor cair antes de completar a transação.
 
 ## Conclusão
-O projeto de venda de passagens entre diferentes servidores de companhias aéreas foi bem-sucedido em criar uma base descentralizada e uma experiência de reserva com concorrência parcialmente controlada. Entretanto, o sistema apresenta limitações de consistência e confiabilidade: falhas de um servidor em meio a uma transação interrompem a experiência do cliente, e o acesso aos dados de um servidor é perdido quando o mesmo cai.
+O projeto de venda de passagens entre diferentes servidores de companhias aéreas foi bem-sucedido em criar uma base descentralizada e uma experiência de reserva com concorrência controlada por meio de um lock distribuído. A solução com Redis melhorou a confiabilidade e a integridade das transações, evitando a venda simultânea de passagens. No entanto, o sistema ainda apresenta limitações de confiabilidade, especialmente em relação à persistência do estado das transações em caso de falhas de servidor.
 
-Apesar dessas limitações, a aplicação demonstra uma solução viável para o problema de descentralização. O uso de um relógio lógico simplificado facilita a organização das requisições e oferece um modelo inicial para uma eventual expansão da funcionalidade de persistência das transações. 
+O uso do Redis para bloquear trechos de voo durante o processo de venda foi uma escolha eficiente, mas a solução de recuperação de transações em caso de falhas ainda precisa ser implementada para garantir uma experiência de usuário mais confiável e contínua. Além disso, o sistema de compartilhamento de dados entre servidores foi bem-sucedido, mas sua dependência de servidores ativos pode prejudicar a experiência do cliente em cenários de falha.
+O projeto de venda de passagens entre diferentes servidores de companhias aéreas foi bem-sucedido em criar uma base descentralizada e uma experiência de reserva com concorrência controlada por meio de um lock distribuído. A solução com Redis melhorou a confiabilidade e a integridade das transações, evitando a venda simultânea de passagens. No entanto, o sistema ainda apresenta limitações de confiabilidade, especialmente em relação à persistência do estado das transações em caso de falhas de servidor.
 
-## Referências
-https://fastapi.tiangolo.com
-
-https://docs.docker.com/reference/
-
-https://github.com/camilafbarcellos/LamportClockSim
-
-https://fastapidozero.dunossauro.com
-
-https://www.youtube.com/watch?v=5ObmfcaugjA
+O uso do Redis para bloquear trechos de voo durante o processo de venda foi uma escolha eficiente, mas a solução de recuperação de transações em caso de falhas ainda precisa ser implementada para garantir uma experiência de usuário mais confiável e contínua. Além disso, o sistema de compartilhamento de dados entre servidores foi bem-sucedido, mas sua dependência de servidores ativos pode prejudicar a experiência do cliente em cenários de falha.
